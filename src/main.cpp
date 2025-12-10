@@ -6,10 +6,13 @@
 #include "iostream"
 #include <array>
 #include "shaders.h"
+#include <Windows.h>
 
+//CHECK https://www.songho.ca/opengl/gl_pbo.html
 
 constexpr auto WIDTH = 600;
 constexpr auto HEIGHT = 600;
+constexpr auto SIZE_COLOR_BUFFER = WIDTH * HEIGHT * 4;
 
 int main() 
 {
@@ -24,13 +27,18 @@ int main()
 		1, 2, 3
 	} };
 
-	std::array<f32, 12> vertices { {
-	 0.5f,  0.5f, 0.0f,  // top right
-	 0.5f, -0.5f, 0.0f,  // bottom right
-	-0.5f, -0.5f, 0.0f,  // bottom left
-	-0.5f,  0.5f, 0.0f   // top left
+	std::array<f32, 16> vertices { {
+		-1.0f, -1.0f,  0.0f, 0.0f,
+		 1.0f, -1.0f,  1.0f, 0.0f,
+		 1.0f,  1.0f,  1.0f, 1.0f,
+		-1.0f,  1.0f,  0.0f, 1.0f
 	} };
+	
+	LPVOID ColorBuffer = VirtualAlloc(0, SIZE_COLOR_BUFFER, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (!ColorBuffer) throw std::runtime_error("FAILED ALLOCATING COLOR BUFFER.");
+	WriteWeirdGradient(ColorBuffer);
 
+	Shader ShaderProgram(SHADERS_PATH "vs.glsl", SHADERS_PATH "fs.glsl");
 
 	u32 VAO;
 	glGenVertexArrays(1, &VAO);
@@ -41,16 +49,34 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
 
+
 	u32 EBO;
 	glGenBuffers(1, &EBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(f32) * 3, (void*)0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(f32) * 4, (void*)0);
 	glEnableVertexAttribArray(0);
 
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(f32) * 4, (void*)(2 * sizeof(f32)));
+	glEnableVertexAttribArray(1);
 
-	Shader ShaderProgram(SHADERS_PATH "vs.glsl", SHADERS_PATH "fs.glsl");
+	u32 texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, (void*)0);
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, ColorBuffer);
+
+
+
 
 	while (!glfwWindowShouldClose(Window))
 	{
@@ -60,6 +86,12 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 		ShaderProgram.UseProgram();
 		glBindVertexArray(VAO);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glUniform1i(glGetUniformLocation(ShaderProgram.GetProgram(), "ColorBuff"), 0);
+
+
 		glDrawElements(GL_TRIANGLES, sizeof(indices), GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(Window);
@@ -67,6 +99,8 @@ int main()
 	}
 
 	glfwTerminate();
+
+	VirtualFree(ColorBuffer, 0, MEM_RELEASE);
 	return 0;
 }
 
@@ -117,4 +151,24 @@ GLFWwindow* GetGLFWWindow() {
 
 	return Window;
 
+}
+
+
+void WriteWeirdGradient(void* buff) 
+{
+	u32 Pitch = 4 * WIDTH;
+	u8* Row = (u8 *)buff;
+	for (int x = 0; x < HEIGHT; x++)
+	{
+		u32* Pixel = (u32 *) Row;
+		for (int y = 0; y < WIDTH; y++)
+		{
+			// RGBA
+			u8 Blue = x % 255;
+			u8 Green = y % 255;
+
+			*Pixel++ = (Blue << 8 | Green << 16);
+		}
+		Row += Pitch;
+	}
 }

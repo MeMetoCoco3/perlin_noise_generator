@@ -64,6 +64,10 @@ public:
 
 	}
 
+	inline u32 GetProgram(void) const
+	{
+		return m_Program;
+	}
 
 	inline void UseProgram(void) const 
 	{
