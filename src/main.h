@@ -3,7 +3,7 @@
 GLFWwindow* GetGLFWWindow(void);
 void WriteWeirdGradient(void* buff, int XOffset, int YOffset);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
-
+void processInput(GLFWwindow* window, void* buff);
+//int CountFilesInFolder(const char* file_path);
 
 

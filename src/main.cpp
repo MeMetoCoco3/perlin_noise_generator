@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "vstd/vlogger.h"
+#include "vstd/vgeneral.h"
 #include "main.h"
 #include "iostream"
 #include <array>
@@ -9,12 +10,17 @@
 #include <Windows.h>
 #include "perlin.h"
 
+#define STBI_MSC_SECURE_CRT
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+// Reference: 
 // CHECK https://www.songho.ca/opengl/gl_pbo.html
 // CHECK https://stackoverflow.com/questions/59234281/save-opengl-rendering-to-an-image-file
 
 constexpr auto WIDTH = 1200;
 constexpr auto HEIGHT = 1200;
-constexpr auto SIZE_COLOR_BUFFER = WIDTH * HEIGHT * 4;
+constexpr auto CHANNEL_NUM = 4;
+constexpr auto SIZE_COLOR_BUFFER = WIDTH * HEIGHT * CHANNEL_NUM;
 
 int main() 
 {
@@ -41,7 +47,7 @@ int main()
 	int XOFF = 0;
 	int YOFF = 0;
 	//WriteWeirdGradient(ColorBuffer, XOFF, YOFF);
-	GeneratePerlinNoise(ColorBuffer, WIDTH, HEIGHT);
+	GeneratePerlinNoise(ColorBuffer, WIDTH, HEIGHT, 1, 1, 1.2);
 	Shader ShaderProgram(SHADERS_PATH "vs.glsl", SHADERS_PATH "fs.glsl");
 
 	u32 VAO;
@@ -84,7 +90,7 @@ int main()
 
 	while (!glfwWindowShouldClose(Window))
 	{
-		processInput(Window);
+		processInput(Window, ColorBuffer);
 
 		glClearColor(0.1f, 0.4f, 0.7f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -117,13 +123,33 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 
-void processInput(GLFWwindow* window)
+void processInput(GLFWwindow* window, void* buff)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(window, true);
 	}
+
+
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+	{
+		stbi_write_png(NOISE_PATH "01.png", WIDTH, HEIGHT, CHANNEL_NUM, buff, WIDTH * CHANNEL_NUM);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+	{
+		GeneratePerlinNoise(buff, WIDTH, HEIGHT, 1, 0.3, 1.5);
+		std::cout << "MORE\n";
+	}
+
+
 }
+
+//int CountFilesInFolder(const char* file_path)
+//{
+//	
+//
+//}
 
 GLFWwindow* GetGLFWWindow() {
 	if (!glfwInit())

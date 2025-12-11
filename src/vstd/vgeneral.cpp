@@ -3,6 +3,7 @@
 #include "vgeneral.h"
 #include <fstream>
 
+
 std::string LoadFile(const std::string& path)
 {
 	std::ifstream file(path);

@@ -1,6 +1,7 @@
 #include "perlin.h"
-
-void GeneratePerlinNoise(void* buff, int w, int h)
+#include <sstream>
+#include <fstream>
+void GeneratePerlinNoise(void* buff, int w, int h, f32 freq, f32 amp, f32 contrast)
 {
 	const int GRID_SIZE = 200;
 	
@@ -24,7 +25,7 @@ void GeneratePerlinNoise(void* buff, int w, int h)
 			}
 
 			// Contrast
-			val *= 1.2;
+			val *= contrast;
 
 			// Clipping
 			if (val > 1.0f)
@@ -43,6 +44,8 @@ void GeneratePerlinNoise(void* buff, int w, int h)
 		}
 	}
 }
+
+
 
 static f32 Perlin(f32 x, f32 y)
 {
