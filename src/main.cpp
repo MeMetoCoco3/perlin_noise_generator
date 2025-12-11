@@ -7,11 +7,13 @@
 #include <array>
 #include "shaders.h"
 #include <Windows.h>
+#include "perlin.h"
 
-//CHECK https://www.songho.ca/opengl/gl_pbo.html
+// CHECK https://www.songho.ca/opengl/gl_pbo.html
+// CHECK https://stackoverflow.com/questions/59234281/save-opengl-rendering-to-an-image-file
 
-constexpr auto WIDTH = 600;
-constexpr auto HEIGHT = 600;
+constexpr auto WIDTH = 1200;
+constexpr auto HEIGHT = 1200;
 constexpr auto SIZE_COLOR_BUFFER = WIDTH * HEIGHT * 4;
 
 int main() 
@@ -36,8 +38,10 @@ int main()
 	
 	LPVOID ColorBuffer = VirtualAlloc(0, SIZE_COLOR_BUFFER, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (!ColorBuffer) throw std::runtime_error("FAILED ALLOCATING COLOR BUFFER.");
-	WriteWeirdGradient(ColorBuffer);
-
+	int XOFF = 0;
+	int YOFF = 0;
+	//WriteWeirdGradient(ColorBuffer, XOFF, YOFF);
+	GeneratePerlinNoise(ColorBuffer, WIDTH, HEIGHT);
 	Shader ShaderProgram(SHADERS_PATH "vs.glsl", SHADERS_PATH "fs.glsl");
 
 	u32 VAO;
@@ -89,6 +93,7 @@ int main()
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, ColorBuffer);
 		glUniform1i(glGetUniformLocation(ShaderProgram.GetProgram(), "ColorBuff"), 0);
 
 
@@ -154,7 +159,7 @@ GLFWwindow* GetGLFWWindow() {
 }
 
 
-void WriteWeirdGradient(void* buff) 
+void WriteWeirdGradient(void* buff, int XOffset, int YOffset ) 
 {
 	u32 Pitch = 4 * WIDTH;
 	u8* Row = (u8 *)buff;
@@ -164,8 +169,8 @@ void WriteWeirdGradient(void* buff)
 		for (int y = 0; y < WIDTH; y++)
 		{
 			// RGBA
-			u8 Blue = x % 255;
-			u8 Green = y % 255;
+			u8 Blue = (XOffset + x) % 255;
+			u8 Green = (YOffset + y) % 255;
 
 			*Pixel++ = (Blue << 8 | Green << 16);
 		}
